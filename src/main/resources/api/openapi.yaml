@@ -1,0 +1,229 @@
+openapi: 3.0.3
+info:
+  title: Authentication Service
+  description: This is the Authentication Service API.
+  termsOfService: https://github.com/bjornhjelle/authentication-service/blob/master/LICENSE
+  contact:
+    email: bjorn.hjelle@gmail.com
+  version: 1.0.0
+externalDocs:
+  description: Project README-file
+  url: https://github.com/bjornhjelle/authentication-service/README.md
+servers:
+  - url: https://authentication.bjornhjelle.no/swagger-ui/
+tags:
+  - name: users
+    description: Everything about users
+    externalDocs:
+      description: Find out more (extra document link)
+      url: https://authentication.bjornhjelle.no/swagger-ui/
+  - name: authentication
+    description: Authentication services
+    externalDocs:
+      description: Find out more (extra document link)
+      url: https://authentication.bjornhjelle.no/swagger-ui/
+paths:
+  /api/users:
+    get:
+      tags:
+        - users
+      summary: Returns a list of users
+      description: Returns all users
+      operationId: getUsers
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      tags:
+        - authentication
+      summary: Signup a new user
+      description: Creates a new user
+      operationId: signUp
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        201:
+          description: Successfully created a user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignedInUser'
+
+  /api/users/{emailAddress}:
+    get:
+      tags:
+        - users
+      summary: Returns user details
+      description: Returns a user
+      operationId: getUser
+      parameters:
+        - name: emailAddress
+          in: path
+          description: Email address
+          required: true
+          schema:
+            type: string
+            # https://www.baeldung.com/java-email-validation-regex
+            pattern: '^(?=.{1,64}@)[A-Za-z0-9_-+]+(\\.[A-Za-z0-9_-+]+)*@[^-][A-Za-z0-9-+]+(\\.[A-Za-z0-9-+]+)*(\\.[A-Za-z]{2,})$'
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        404:
+          description: User doesn't exist
+          content: { }
+  /api/users/csv:
+    get:
+      tags:
+        - users
+      summary: Returns a list of users as a CSV-file
+      description: Returns all users
+      operationId: getUsersCsv
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/csv:
+              schema:
+                type: object
+          headers:
+            Content-Disposition:
+              $ref: '#/components/headers/myHeader'
+  /api/auth/token:
+    post:
+      tags:
+        - authentication
+      summary: Signin the user
+      description: Signin the user, generate JWT (access token) and refresh token, which can be used to access APIs.
+      operationId: signIn
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInReq'
+      responses:
+        200:
+          description: For successful user sign-in. User will receive access and refresh tokens.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignedInUser'
+    delete:
+      tags:
+        - authentication
+      summary: Signout the user
+      description: Signs out the user. It removes the refresh token from the database. Last JWT should be removed from client end that if not removed last for given expiration time.
+      operationId: signOut
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshToken'
+      responses:
+        202:
+          description: Accepts the request for logout.
+  /api/auth/token/refresh:
+    post:
+      tags:
+        - authentication
+      summary: Provides new JWT based on valid refresh token.
+      description: Provides new JWT based on valid refresh token.
+      operationId: getAccessToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshToken'
+      responses:
+        200:
+          description: For successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignedInUser'
+
+
+
+components:
+  schemas:
+    User:
+      description: A user
+      required:
+        - emailAddress
+        - mobilePhone
+      type: object
+      properties:
+        id:
+          description: the user's unique identifier
+          type: string
+        email:
+          description: email address
+          type: string
+        password:
+          description: password
+          type: string
+        firstName:
+          description: first name
+          type: string
+        lastName:
+          description: last name
+          type: string
+        phone:
+          description: mobile phone number
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SignedInUser:
+      description: A signed in user
+      type: object
+      properties:
+        refreshToken:
+          description: Refresh Token, a unique secure string
+          type: string
+        accessToken:
+          description: JWT Token aka access token
+          type: string
+        username:
+          description: User Name
+          type: string
+        userId:
+          description: User Identifier
+          type: string
+    SignInReq:
+      description: Request body for sign-in
+      type: object
+      properties:
+        username:
+          description: The username (email address)
+          type: string
+        password:
+          description: The password
+          type: string
+    RefreshToken:
+      description: Refresh token
+      type: object
+      properties:
+        refreshToken:
+          description: The refresh token
+          type: string
+  headers:
+    myHeader:
+      description: Should be "attachment; filename=<filename>"
+      schema:
+        type: string

@@ -1,0 +1,122 @@
+plugins {
+	id 'org.springframework.boot' version '2.6.0-RC1'
+	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+	id 'java'
+	id 'org.hidetake.swagger.generator' version '2.19.1'
+	id "org.flywaydb.flyway" version "8.0.2"
+}
+
+group = 'no.bjornhjelle'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.14'
+
+bootRun {
+	systemProperties = System.properties
+	systemProperties.remove("java.endorsed.dirs")
+	//  jvmArgs = ["-javaagent:$rootDir/applicationinsights-agent-3.0.2.jar"]
+}
+
+swaggerSources {
+	authenticationService {
+		def apiYaml = "${rootDir}/src/main/resources/api/openapi.yaml"
+		def configJson = "${rootDir}/src/main/resources/api/config.json"
+		inputFile = file(apiYaml)
+		def ignoreFile = file("${rootDir}/src/main/resources/api/.openapi-generator-ignore")
+		code {
+			language = 'spring'
+			configFile = file(configJson)
+			rawOptions = ['--ignore-file-override', ignoreFile, '--type-mappings',
+						  'URI=URI', '--import-mappings', 'URI=java.net.URI'] as List<String>
+			components = [models: true, apis: true, supportingFiles: 'ApiUtil.java']
+			//dependsOn validation // Should be uncommented once plugin starts supporting OA 3 validation
+		}
+	}
+}
+
+compileJava {
+	dependsOn(swaggerSources.authenticationService.code)
+}
+//sourceSets.main.java.srcDir "${swaggerSources.openApiDemo.code.outputDir}/src/main/java"
+//sourceSets.main.resources.srcDir "${swaggerSources.openApiDemo.code.outputDir}/src/main/resources"
+sourceSets {
+	main {
+		java.srcDirs += file("${swaggerSources.authenticationService.code.outputDir}/src/main/java")
+		resources.srcDirs += file("${swaggerSources.authenticationService.code.outputDir}/src/main/resources")
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
+}
+
+flyway {
+	url = 'jdbc:postgresql://localhost:5432/authdb'
+	user = 'authuser'
+	password = 'hemmelig'
+	schemas = ['authdb']
+/*	placeholders = [
+			'keyABC': 'valueXYZ',
+			'otherplaceholder': 'value123'
+	]
+ */
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-data-rest'
+
+	implementation group: 'org.springframework.boot', name: 'spring-boot-starter-oauth2-resource-server', version: '2.5.6'
+	implementation 'com.auth0:java-jwt:3.18.2'
+
+	implementation 'org.flywaydb:flyway-core:8.0.2'
+	//runtimeOnly 'com.h2database:h2'
+	implementation group: 'org.postgresql', name: 'postgresql', version: '42.2.24'
+
+	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity5'
+
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+	testImplementation("org.springframework.boot:spring-boot-starter-test") {
+		exclude group: "com.vaadin.external.google", module:"android-json"
+	}
+	testImplementation 'org.springframework.security:spring-security-test'
+
+
+	implementation group: 'io.swagger.codegen.v3', name: 'swagger-codegen', version: '3.0.29'
+	swaggerCodegen 'io.swagger.codegen.v3:swagger-codegen-cli:3.0.0'
+
+	// zalando problem handling
+	implementation group: 'org.zalando', name: 'problem-spring-web-starter', version: '0.27.0'
+	implementation 'io.micrometer:micrometer-registry-prometheus:latest.release'
+
+	implementation 'org.apache.commons:commons-csv:1.8'
+
+
+	testImplementation 'com.h2database:h2'
+
+}
+
+test {
+	useJUnitPlatform()
+}

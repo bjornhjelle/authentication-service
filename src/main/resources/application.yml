@@ -1,0 +1,76 @@
+server.port: 8081
+
+management:
+  endpoints.web.exposure.include: health,info,refresh,loggers,metrics,prometheus
+  endpoint.health.show-details: when_authorized
+  endpoint:
+    refresh:
+      enabled: true
+    loggers:
+      enabled: true
+    prometheus:
+      enabled: true
+
+spring:
+  security:
+    user:
+      name: bjorn
+      password: hemmelig
+  oauth2:
+    resourceserver:
+      jwt:
+        issuer-uri: http://localhost:8083/auth/realms/baeldung
+  application:
+    name: authentication-service
+
+  # data source postgreSQL:
+  datasource.name: authdb
+  datasource.url: jdbc:postgresql://localhost:5432/${spring.datasource.name}
+  datasource.username: authuser
+  datasource.password: hemmelig
+  datasource.driver-class-name: org.postgresql.Driver
+
+  # data source h2:
+#  datasource.name: authdb
+#  datasource.url: jdbc:h2:file:~/authdb;DB_CLOSE_DELAY=-1;IGNORECASE=TRUE;DATABASE_TO_UPPER=false
+#  datasource.driverClassName: org.h2.Driver
+#  datasource.username: sa    # service account
+#  datasource.password: hemmelig
+
+  # h2:
+#  h2.console.enabled: true
+#  h2.console.settings.web-allow-others: false
+#  h2.console.path: /h2
+
+  # jpa
+  jpa.properties.hibernate.default_schema: ${spring.datasource.name}
+  # jpa postgreSQL:
+
+  jpa.database-platform: org.hibernate.dialect.PostgreSQLDialect
+  jpa.properties.hibernate.dialect: ${spring.jpa.database-platform}
+  # jpa h2:
+#  jpa.database-platform: org.hibernate.dialect.H2Dialect
+
+  jpa.show-sql: true
+  jpa.format_sql: true
+  jpa.generate-ddl: false
+  jpa.hibernate.ddl-auto: none
+
+  # flyway:
+  flyway.url: ${spring.datasource.url}
+  flyway.schemas: ${spring.datasource.name}
+  flyway.default-schema: ${spring.datasource.name}
+  flyway.user: ${spring.datasource.username}
+  flyway.password: ${spring.datasource.password}
+  flyway.baselineOnMigrate: true
+  flyway.baseline-version: 0
+
+# Security configuration
+# Keystore/keys generated using JDK have validity of three months.
+# Before using this code make sure to generate a new keys
+# update these values accordingly.
+app.security.jwt:
+  keystore-location: jwt-keystore.jks
+  keystore-password: hemmelig
+  key-alias: jwt-sign-key
+  private-key-passphrase: hemmelig
